@@ -90,7 +90,7 @@ export default defineConfig(async ({ mode }) => ({
       // `/api` reaches the FastAPI app in dev only through Nitro's own proxy.
       devProxy: {
         "/api": {
-          target: "http://localhost:3000",
+          target: "http://127.0.0.1:3000",
           changeOrigin: true,
         },
       },
