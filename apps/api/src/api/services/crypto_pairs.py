@@ -187,7 +187,7 @@ PAIRS: list[PairConfig] = [
     {
         "symbol": "FET",
         "name": "Artificial Superintelligence Alliance",
-        "coingecko_id": "artificial-superintelligence-alliance",
+        "coingecko_id": "fetch-ai",
         "quote": "USDC",
         "defillama_kind": "none",
         "defillama_slug": "",
@@ -207,7 +207,7 @@ PAIRS: list[PairConfig] = [
     {
         "symbol": "ZAMA",
         "name": "Zama",
-        "coingecko_id": "zama-2",
+        "coingecko_id": "zama",
         "quote": "USDC",
         "defillama_kind": "none",
         "defillama_slug": "",
