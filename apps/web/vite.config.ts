@@ -86,6 +86,14 @@ export default defineConfig(async ({ mode }) => ({
       // to a browser that accepts them: `node .output/server/index.mjs` compresses nothing on the
       // fly, so without them a page's JS and CSS cross the wire uncompressed.
       compressPublicAssets: { brotli: true, gzip: true },
+      // Nitro owns the dev server under TanStack Start and never reads Vite's `server.proxy`:
+      // `/api` reaches the FastAPI app in dev only through Nitro's own proxy.
+      devProxy: {
+        "/api": {
+          target: "http://localhost:3000",
+          changeOrigin: true,
+        },
+      },
     }),
     viteReact({ compiler: true }),
     ...(await contributedPlugins()),

@@ -16,6 +16,13 @@ const fastapiProxy: Plugin = {
       },
     },
   }),
+  configureServer: (server) => {
+    // Nitro owns the dev middleware chain under TanStack Start and serves any request that no
+    // later middleware claims by route — it never reads Vite's `server.proxy` itself. Anchoring
+    // `/api` in the stack makes Nitro's dev middleware defer, and Vite's proxy (configured above)
+    // then forwards the request to the FastAPI app.
+    server.middlewares.use("/api", (_req, _res, next) => next());
+  },
 };
 
 export default fastapiProxy;
