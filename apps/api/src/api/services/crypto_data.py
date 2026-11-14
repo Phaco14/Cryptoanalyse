@@ -39,18 +39,38 @@ class MarketData:
 
 _cache: dict[str, tuple[float, Any]] = {}
 _cache_lock = asyncio.Lock()
+_inflight: dict[str, asyncio.Task[Any]] = {}
 
 
-async def _cached(key: str, factory: Any) -> Any:
-    async with _cache_lock:
-        hit = _cache.get(key)
-        now = time.monotonic()
-        if hit is not None and now - hit[0] < CACHE_TTL_S:
-            return hit[1]
+def _fresh(key: str) -> bool:
+    hit = _cache.get(key)
+    return hit is not None and time.monotonic() - hit[0] < CACHE_TTL_S
+
+
+async def _refresh(key: str, factory: Any) -> Any:
     value = await factory()
     async with _cache_lock:
         _cache[key] = (time.monotonic(), value)
     return value
+
+
+async def _cached(key: str, factory: Any) -> Any:
+    """Serve the cached value; refresh in the background when it goes stale.
+
+    Concurrent misses share one in-flight refresh, so a burst of requests triggers
+    a single fetch, and callers never wait on a stale entry.
+    """
+    async with _cache_lock:
+        hit = _cache.get(key)
+        if hit is not None and time.monotonic() - hit[0] < CACHE_TTL_S:
+            return hit[1]
+        task = _inflight.get(key)
+        if task is None or task.done():
+            task = asyncio.create_task(_refresh(key, factory))
+            _inflight[key] = task
+        if hit is not None:
+            return hit[1]
+    return await task
 
 
 RATE_LIMIT_PAUSE_S = 6.0
@@ -138,7 +158,7 @@ async def collect_all() -> dict[str, Any]:
         tvl_chains = await fetch_tvl_map(client)
         markets: dict[str, MarketData] = {}
         for index, pair in enumerate(PAIRS):
-            if index:
+            if index and not _fresh(f"market:{pair['coingecko_id']}"):
                 await asyncio.sleep(RATE_LIMIT_PAUSE_S)
             markets[pair["symbol"]] = await fetch_pair_market(client, pair)
 
